@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS rustaceans (
+    id BIGSERIAL PRIMARY KEY
+    ,name VARCHAR NOT NULL
+    ,email VARCHAR NOT NULL
+    ,created_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
