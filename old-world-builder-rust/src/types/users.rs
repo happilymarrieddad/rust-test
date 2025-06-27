@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 #[derive(Debug)]
 pub struct user {
@@ -7,6 +7,8 @@ pub struct user {
     pub last_name: String,
     pub email: String,
     pub password: String,
+    pub created_at: chrono::DateTime<chrono::Utc>, 
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Deserialize)]

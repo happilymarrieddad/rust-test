@@ -1,4 +1,3 @@
-use serde::Serialize;
 use sqlx::{Pool, Postgres};
 use sqlx::error::Error;
 use sqlx::Row;
@@ -33,6 +32,7 @@ mod tests {
 
         assert_ne!(new_user.id, 0);
         assert_eq!(new_user.email, "nick@mail.com");
+        println!("{:#?}", new_user);
 
         let err: Error = repo.create(users::create_user{
             first_name: String::from("Nick"),
@@ -71,6 +71,8 @@ impl UserRepo {
             last_name: String::from(new_user.last_name),
             email: String::from(new_user.email),
             password: String::from(new_user.password),
+            created_at: chrono::offset::Utc::now(),
+            updated_at: chrono::offset::Utc::now(),
         };
 
         for col in row.columns() {
@@ -79,10 +81,10 @@ impl UserRepo {
                     new_user.id = row.try_get(col.name()).unwrap();
                 }
                 "created_at" => {
-
+                    new_user.created_at = row.try_get(col.name()).unwrap();
                 }
                 "updated_at" => {
-
+                    new_user.updated_at = row.try_get(col.name()).unwrap();
                 }
                 _ => {
 
