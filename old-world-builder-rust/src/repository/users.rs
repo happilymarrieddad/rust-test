@@ -7,16 +7,21 @@ use crate::types::users;
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use sqlx::{postgres::PgPoolOptions, Executor};
 
     use super::*;
 
     #[actix_rt::test]
     async fn create_user() {
+        let mut db_url = env::var("OLD_WORLD_BUILDER_RUST_DB_URL").expect("OLD_WORLD_BUILDER_RUST_DB_URL env is required to run tests");
+        db_url = String::from("postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable");
+
         let pool = PgPoolOptions::new()
             .max_connections(5)
-            .connect("postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable")
-            .await.unwrap();
+            .connect(db_url.as_str())
+            .await.expect("unable to connect to database with url");
 
         pool.execute("TRUNCATE users").await.expect("unable to truncate users");
 
@@ -28,7 +33,7 @@ mod tests {
             email: String::from("nick@mail.com"),
             password: String::from("1234"),
             password_confirm: String::from("1234"),
-        }).await.unwrap();
+        }).await.expect("unable to create user");
 
         assert_ne!(new_user.id, 0);
         assert_eq!(new_user.email, "nick@mail.com");
@@ -40,7 +45,7 @@ mod tests {
             email: String::from("nick@mail.com"),
             password: String::from("1234"),
             password_confirm: String::from("1234"),
-        }).await.unwrap_err();
+        }).await.expect_err("creating the same user should fail");
 
         assert_eq!(err.to_string(), "error returned from database: duplicate key value violates unique constraint \"users_email_key\"");
     }
@@ -55,7 +60,7 @@ impl UserRepo {
         UserRepo{pool: pool}
     }
 
-    async fn create(&self, new_user: users::create_user) -> Result<users::user, Error> {
+    pub async fn create(&self, new_user: users::create_user) -> Result<users::user, Error> {
         let row = sqlx::query(
             "INSERT INTO users (first_name, last_name, email, password)
             VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at")

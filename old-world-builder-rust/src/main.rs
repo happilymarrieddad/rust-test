@@ -1,4 +1,7 @@
+use std::env;
+
 use actix_web::{error, App, HttpServer, web, HttpResponse};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 // use std::{
 //     cell::Cell,
 //     sync::atomic::{AtomicUsize, Ordering},
@@ -11,16 +14,22 @@ mod repository;
 
 #[derive(Clone)]
 struct AppState {
-    // local_count: Cell<usize>,
-    // global_count: Arc<AtomicUsize>,
+    pool: Pool<Postgres>,
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    let mut db_url = env::var("OLD_WORLD_BUILDER_RUST_DB_URL").expect("OLD_WORLD_BUILDER_RUST_DB_URL env is required to run tests");
+        db_url = String::from("postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable");
+
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(db_url.as_str())
+        .await.expect("unable to get database connection");
+
+    HttpServer::new(move || {
         let data = AppState {
-            // local_count: Cell::new(0),
-            // global_count: Arc::new(AtomicUsize::new(0)),
+            pool: pool.clone(),
         };
 
         let json_config = web::JsonConfig::default()
