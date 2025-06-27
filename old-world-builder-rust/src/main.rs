@@ -6,6 +6,8 @@ use actix_web::{error, App, HttpServer, web, HttpResponse};
 // };
 
 mod api;
+mod types;
+mod repository;
 
 #[derive(Clone)]
 struct AppState {

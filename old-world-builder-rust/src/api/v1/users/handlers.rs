@@ -2,23 +2,7 @@ use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
 
 use crate::AppState;
-
-#[derive(Deserialize)]
-struct CreateUser {
-    first_name: String,
-    last_name: String,
-    email: String,
-    password: String,
-    password_confirm: String,
-}
-
-#[derive(Deserialize)]
-struct UpdateUser {
-    first_name: String,
-    last_name: String,
-    password: String,
-    password_confirm: String,
-}
+use crate::types::users::{create_user, update_user};
 
 #[derive(Deserialize)]
 pub struct FindOpts {
@@ -27,7 +11,7 @@ pub struct FindOpts {
 }
 
 pub async fn get(path: web::Path<(u32)>) -> impl Responder {
-    let (id) = path.into_inner();
+    let id = path.into_inner();
     HttpResponse::NotImplemented()
 }
 
@@ -35,16 +19,16 @@ pub async fn find(opts: web::Query<FindOpts>) -> impl Responder {
     HttpResponse::NotImplemented()
 }
 
-pub async fn create(data: web::Data<AppState>, info: web::Json<CreateUser>) -> impl Responder {
+pub async fn create(data: web::Data<AppState>, info: web::Json<create_user>) -> impl Responder {
     HttpResponse::NotImplemented()
 }
 
-pub async fn update(path: web::Path<(u32)>, data: web::Data<AppState>, info: web::Json<UpdateUser>) -> impl Responder {
-    let (id) = path.into_inner();
+pub async fn update(path: web::Path<(u32)>, data: web::Data<AppState>, info: web::Json<update_user>) -> impl Responder {
+    let id = path.into_inner();
     HttpResponse::NotImplemented()
 }
 
 pub async fn delete(path: web::Path<(u32)>) -> impl Responder {
-    let (id) = path.into_inner();
+    let id = path.into_inner();
     HttpResponse::NotImplemented()
 }

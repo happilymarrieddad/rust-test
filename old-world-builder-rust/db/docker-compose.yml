@@ -1,0 +1,35 @@
+services:
+  postgres:
+    container_name: oldworld-db
+    image: postgis/postgis:15-master
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: oldworld-test
+    # volumes:
+    #   - $HOME/docker/volumes/postgres:/var/lib/postgresql/data
+    #   - $HOME/docker/logs/postgres:/var/lib/postgresql/logs
+    restart: unless-stopped
+  pgadmin:
+    container_name: oldworld-pgadmin
+    image: dpage/pgadmin4:8.11
+    depends_on:
+      - postgres
+    ports:
+      - "5431:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: postgres@foo.com
+      PGADMIN_DEFAULT_PASSWORD: postgres
+    restart: unless-stopped
+
+  # nats comm
+  nats:
+    container_name: nats
+    image: nats:2.10.20
+    ports:
+      - 4222:4222
+    command:
+      - "--jetstream"
