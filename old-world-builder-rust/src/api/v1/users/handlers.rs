@@ -36,6 +36,7 @@ pub async fn create(data: web::Data<AppState>, new_user: web::Json<create_user>)
             HttpResponse::InternalServerError()
         }
         Ok(created_user) => {
+            // TODO: return the created user
             HttpResponse::Created() //.json(created_user)
         }
     }
