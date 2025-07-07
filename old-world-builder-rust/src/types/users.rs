@@ -1,5 +1,7 @@
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
+// sqlx::FromRow
 #[derive(Debug, Serialize)]
 pub struct user {
     pub id: i64,
@@ -7,8 +9,10 @@ pub struct user {
     pub last_name: String,
     pub email: String,
     pub password: String,
-    pub created_at: chrono::DateTime<chrono::Utc>, 
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<Utc>, 
+    pub updated_at: chrono::DateTime<Utc>,
+    pub active: bool,
+    pub deleted_at: Option<chrono::DateTime<Utc>>,
 }
 
 impl user {
@@ -19,8 +23,10 @@ impl user {
             last_name: String::from(""),
             email: String::from(""),
             password: String::from(""),
-            created_at: chrono::offset::Utc::now(),
-            updated_at: chrono::offset::Utc::now(),
+            created_at:  sqlx::types::chrono::Utc::now().to_utc(),
+            updated_at: sqlx::types::chrono::Utc::now().to_utc(),
+            active: true,
+            deleted_at: None,
         }
     } 
 }

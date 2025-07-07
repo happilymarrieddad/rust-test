@@ -9,14 +9,14 @@ use crate::types::users;
 mod tests {
     use std::env;
 
+    use serial_test::serial;
     use sqlx::{postgres::PgPoolOptions, Executor};
 
     use super::*;
 
-    #[actix_rt::test]
-    async fn create_user_success() {
-        let mut db_url = env::var("OLD_WORLD_BUILDER_RUST_DB_URL").expect("OLD_WORLD_BUILDER_RUST_DB_URL env is required to run tests");
-        db_url = String::from("postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable");
+    async fn init() -> UserRepo {
+        dotenv::dotenv().ok();
+        let db_url = env::var("DATABASE_URL").expect("DATABASE_URL env is required to run tests");
 
         let pool = PgPoolOptions::new()
             .max_connections(5)
@@ -25,7 +25,13 @@ mod tests {
 
         pool.execute("TRUNCATE users").await.expect("unable to truncate users");
 
-        let repo = UserRepo::new(pool);
+        UserRepo::new(pool)
+    }
+
+    #[actix_rt::test]
+    #[serial] // so we only run them 1 at a time
+    async fn create_user_success() {
+        let repo = init().await;
 
         let new_user = repo.create(users::create_user{
             first_name: String::from("Nick"),
@@ -50,18 +56,10 @@ mod tests {
         assert_eq!(err.to_string(), "error returned from database: duplicate key value violates unique constraint \"users_email_key\"");
     }
 
+    #[actix_rt::test]
+    #[serial]
     async fn get_user_success() {
-        let mut db_url = env::var("OLD_WORLD_BUILDER_RUST_DB_URL").expect("OLD_WORLD_BUILDER_RUST_DB_URL env is required to run tests");
-        db_url = String::from("postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable");
-
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(db_url.as_str())
-            .await.expect("unable to connect to database with url");
-
-        pool.execute("TRUNCATE users").await.expect("unable to truncate users");
-
-        let repo = UserRepo::new(pool);
+        let repo = init().await;
 
         let new_user = repo.create(users::create_user{
             first_name: String::from("Nick"),
@@ -88,9 +86,34 @@ pub struct UserRepo {
     pool: Pool<Postgres>,
 }
 
+pub struct UserRepoFindBy {
+    id: i64,
+    email: String,
+}
+
 impl UserRepo {
     pub fn new(pool: Pool<Postgres>) -> Self {
         UserRepo{pool: pool}
+    }
+
+    pub async fn find_by(&self, opts: UserRepoFindBy) -> Result<users::user, Error> {
+        // if opts.id.is_none() && opts.email.is_none() {
+        //     return Err(sqlx::Error::InvalidArgument(String::from("either id or email is required")));
+        // }
+
+        let result = sqlx::query_as!(
+                users::user, 
+                "SELECT * FROM users WHERE id = $1 OR email = $2", 
+                opts.id, opts.email)
+            .fetch_optional(&self.pool)
+            .await?;
+
+        // if result.is_some() {
+        //    return Ok(result.unwrap())
+        // }
+
+        //Err(sqlx::Error::RowNotFound)
+        Ok(result.unwrap())
     }
 
     pub async fn create(&self, new_user: users::create_user) -> Result<users::user, Error> {
@@ -103,73 +126,23 @@ impl UserRepo {
         //     return Err("password must match password confirm");
         // }
 
-        let row = sqlx::query(
+        let row = sqlx::query_as!(users::user,
             "INSERT INTO users (first_name, last_name, email, password)
-            VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at")
-            .bind(new_user.first_name.clone())
-            .bind(new_user.last_name.clone())
-            .bind(new_user.email.clone())
-            .bind(new_user.password.clone())
+            VALUES ($1, $2, $3, $4) RETURNING *"
+                ,new_user.first_name.clone()
+                ,new_user.last_name.clone()
+                ,new_user.email.clone()
+                ,new_user.password.clone())
             .fetch_one(&self.pool).await?;
-
-        let mut new_user = users::user::new();
-
-        for col in row.columns() {
-            match col.name() {
-                "id" => {
-                    new_user.id = row.try_get(col.name()).unwrap();
-                }
-                "created_at" => {
-                    new_user.created_at = row.try_get(col.name()).unwrap();
-                }
-                "updated_at" => {
-                    new_user.updated_at = row.try_get(col.name()).unwrap();
-                }
-                _ => {
-                    println!("unknown field found for user create '{}'", col.name());
-                }
-            }
-        }
         
-        Ok(new_user)
+        Ok(row)
     }
 
     pub async fn get(&self, id: i64) -> Result<users::user, Error> {
-        let row: sqlx::postgres::PgRow = sqlx::query("SELECT * FROM users WHERE id = $1")
-            .bind(id)
+        let row = sqlx::query_as!(users::user,
+            "SELECT * FROM users WHERE id = $1", id)
             .fetch_one(&self.pool).await?;
 
-        let mut existing_user = users::user::new();
-
-        for col in row.columns() {
-            match col.name() {
-                "id" => {
-                    existing_user.id = row.try_get(col.name()).unwrap();
-                }
-                "first_name" => {
-                    existing_user.first_name = row.try_get(col.name()).unwrap();
-                }
-                "last_name" => {
-                    existing_user.last_name = row.try_get(col.name()).unwrap();
-                }
-                "email" => {
-                    existing_user.email = row.try_get(col.name()).unwrap();
-                }
-                "password" => {
-                    existing_user.password = row.try_get(col.name()).unwrap();
-                }
-                "created_at" => {
-                    existing_user.created_at = row.try_get(col.name()).unwrap();
-                }
-                "updated_at" => {
-                    existing_user.updated_at = row.try_get(col.name()).unwrap();
-                }
-                _ => {
-                    println!("unknown field found for user get '{}'", col.name());
-                }
-            }
-        }
-
-        Ok(existing_user)
+        Ok(row)
     }
 }

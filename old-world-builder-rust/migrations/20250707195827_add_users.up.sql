@@ -1,4 +1,3 @@
--- +goose Up
 CREATE SCHEMA IF NOT EXISTS tiger;
 CREATE SCHEMA IF NOT EXISTS tiger_data;
 CREATE SCHEMA IF NOT EXISTS topology;COMMENT ON SCHEMA topology IS 'PostGIS Topology schema';
@@ -20,10 +19,7 @@ CREATE TABLE IF NOT EXISTS users(
     ,password       CITEXT NOT NULL
     ,created_at     TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
     ,updated_at     TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
-    ,active         BOOLEAN DEFAULT TRUE
+    ,active         BOOLEAN NOT NULL DEFAULT TRUE
     ,deleted_at     TIMESTAMP WITH TIME ZONE
     ,UNIQUE(email)
 );
-
--- +goose Down
-DROP TABLE IF EXISTS users;

@@ -1,22 +1,21 @@
 install:
-	brew install goose
+	cargo install sqlx-cli --no-default-features --features native-tls,postgres
 
-db.migrate.create:
-db.migrate.create:
-	goose -dir db/migrations create $(name) sql
+test:
+	cargo test
 
-db.migrate.up:
-db.migrate.up:
-	goose -allow-missing -dir db/migrations postgres "postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable" up
+db.init:
+	sqlx database create
 
-db.migrate.down:
-db.migrate.down:
-	goose -dir db/migrations postgres "postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable" down
+db.drop:
+	sqlx database drop
 
-db.migrate.reset:
-db.migrate.reset:
-	goose -dir db/migrations postgres "postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable" reset
+db.add:
+	sqlx migrate add -r $(name)
 
-db.migrate.validate:
-db.migrate.validate:
-	goose -dir=./db/migrations -v validate
+db.up:
+	sqlx migrate run
+
+db.reset:
+	sqlx migrate revert
+	make db.up
