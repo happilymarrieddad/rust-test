@@ -94,13 +94,14 @@ impl UserRepo {
     }
 
     pub async fn create(&self, new_user: users::create_user) -> Result<users::user, Error> {
-        if new_user.password == String::from("") {
-            return Err(Error::from("password must be filled out"));
-        }
+        // TODO: add validation
+        // if new_user.password == String::from("") {
+        //     return Err(Error::from(String::from("non-empty password required")));
+        // }
 
-        if new_user.password != new_user.password_confirm {
-            return Err("password must match password confirm");
-        }
+        // if new_user.password != new_user.password_confirm {
+        //     return Err("password must match password confirm");
+        // }
 
         let row = sqlx::query(
             "INSERT INTO users (first_name, last_name, email, password)
@@ -125,7 +126,7 @@ impl UserRepo {
                     new_user.updated_at = row.try_get(col.name()).unwrap();
                 }
                 _ => {
-
+                    println!("unknown field found for user create '{}'", col.name());
                 }
             }
         }
@@ -164,7 +165,7 @@ impl UserRepo {
                     existing_user.updated_at = row.try_get(col.name()).unwrap();
                 }
                 _ => {
-
+                    println!("unknown field found for user get '{}'", col.name());
                 }
             }
         }
