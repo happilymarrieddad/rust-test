@@ -14,7 +14,7 @@ mod tests {
     use super::*;
 
     #[actix_rt::test]
-    async fn create_user() {
+    async fn create_user_success() {
         let mut db_url = env::var("OLD_WORLD_BUILDER_RUST_DB_URL").expect("OLD_WORLD_BUILDER_RUST_DB_URL env is required to run tests");
         db_url = String::from("postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable");
 
@@ -49,6 +49,39 @@ mod tests {
 
         assert_eq!(err.to_string(), "error returned from database: duplicate key value violates unique constraint \"users_email_key\"");
     }
+
+    async fn get_user_success() {
+        let mut db_url = env::var("OLD_WORLD_BUILDER_RUST_DB_URL").expect("OLD_WORLD_BUILDER_RUST_DB_URL env is required to run tests");
+        db_url = String::from("postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable");
+
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(db_url.as_str())
+            .await.expect("unable to connect to database with url");
+
+        pool.execute("TRUNCATE users").await.expect("unable to truncate users");
+
+        let repo = UserRepo::new(pool);
+
+        let new_user = repo.create(users::create_user{
+            first_name: String::from("Nick"),
+            last_name: String::from("Kotenberg"),
+            email: String::from("nick@mail.com"),
+            password: String::from("1234"),
+            password_confirm: String::from("1234"),
+        }).await.expect("unable to create user");
+
+        assert_ne!(new_user.id, 0);
+        assert_eq!(new_user.email, "nick@mail.com");
+        println!("{:#?}", new_user);
+
+        let existing_user = repo.get(new_user.id).await.expect("unable to get user by id");
+
+        assert_eq!(new_user.first_name, existing_user.first_name);
+        assert_eq!(new_user.last_name, existing_user.last_name);
+        assert_eq!(new_user.email, existing_user.email);
+        assert_eq!(new_user.password, existing_user.password); // TODO: compare it's hash instead... shouldn't be storing raw strings
+    }
 }
 
 pub struct UserRepo {
@@ -61,6 +94,14 @@ impl UserRepo {
     }
 
     pub async fn create(&self, new_user: users::create_user) -> Result<users::user, Error> {
+        if new_user.password == String::from("") {
+            return Err(Error::from("password must be filled out"));
+        }
+
+        if new_user.password != new_user.password_confirm {
+            return Err("password must match password confirm");
+        }
+
         let row = sqlx::query(
             "INSERT INTO users (first_name, last_name, email, password)
             VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at")
@@ -70,15 +111,7 @@ impl UserRepo {
             .bind(new_user.password.clone())
             .fetch_one(&self.pool).await?;
 
-        let mut new_user = users::user{
-            id: 0,
-            first_name: String::from(new_user.first_name),
-            last_name: String::from(new_user.last_name),
-            email: String::from(new_user.email),
-            password: String::from(new_user.password),
-            created_at: chrono::offset::Utc::now(),
-            updated_at: chrono::offset::Utc::now(),
-        };
+        let mut new_user = users::user::new();
 
         for col in row.columns() {
             match col.name() {
@@ -100,20 +133,12 @@ impl UserRepo {
         Ok(new_user)
     }
 
-    pub async fn get(&self, id: u64) -> Result<users::user, Error> {
+    pub async fn get(&self, id: i64) -> Result<users::user, Error> {
         let row: sqlx::postgres::PgRow = sqlx::query("SELECT * FROM users WHERE id = $1")
             .bind(id)
             .fetch_one(&self.pool).await?;
 
-        let mut existing_user = users::user{
-            id: 0,
-            first_name: String::from(""),
-            last_name: String::from(""),
-            email: String::from(""),
-            password: String::from(""),
-            created_at: chrono::offset::Utc::now(),
-            updated_at: chrono::offset::Utc::now(),
-        };
+        let mut existing_user = users::user::new();
 
         for col in row.columns() {
             match col.name() {

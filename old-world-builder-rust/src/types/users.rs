@@ -11,6 +11,20 @@ pub struct user {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+impl user {
+    pub fn new() -> Self {
+        user{
+            id: 0,
+            first_name: String::from(""),
+            last_name: String::from(""),
+            email: String::from(""),
+            password: String::from(""),
+            created_at: chrono::offset::Utc::now(),
+            updated_at: chrono::offset::Utc::now(),
+        }
+    } 
+}
+
 #[derive(Deserialize)]
 pub struct create_user {
     pub first_name: String,
