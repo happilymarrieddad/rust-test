@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                COUNT(*) \n\n            FROM users\n\n            WHERE (users.id = $1 OR $1 = 0)\n            AND (users.email = $2 OR $2 = '')\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6e5cfbfbf5fd48118377999cc6e905a9be013f4d1f4c500ec2db397ff978090a"
+}
