@@ -1,9 +1,13 @@
 use serde::Serialize;
 use sqlx::{Pool, Postgres, Transaction};
 use sqlx::error::Error;
-use bcrypt::{hash, DEFAULT_COST}; // , verify
+use bcrypt::{hash, BcryptResult, DEFAULT_COST}; // , verify
 
 use crate::types::users;
+
+fn hash_password(password: String) -> BcryptResult<String> {
+    hash(password, DEFAULT_COST)
+}
 
 #[cfg(test)]
 mod tests {
@@ -251,7 +255,7 @@ impl UserRepo {
                 ,new_user.first_name.clone()
                 ,new_user.last_name.clone()
                 ,new_user.email.clone()
-                ,hash(new_user.password.clone(), DEFAULT_COST).unwrap())
+                ,hash_password(new_user.password.clone()).unwrap())
             .fetch_one(&mut **tx).await?;
         
         Ok(row)
@@ -410,5 +414,38 @@ impl UserRepo {
         "#, usr.first_name, usr.last_name, usr.id.clone()).execute(&mut **tx).await?;
 
         self.get_tx(tx, usr.id).await
+    }
+
+    pub async fn update_password(&self, id: i64, password: String, password_confirm: String) -> Result<users::user, Error> {
+        let mut tx = self.pool.begin().await?;
+
+        let res = self.update_password_tx(&mut tx, id, password, password_confirm).await;
+        if res.is_err() {
+            tx.rollback().await?;
+            return Err(res.err().unwrap());
+        }
+
+        let _ = tx.commit().await?;
+
+        Ok(res.unwrap())
+    }
+
+    pub async fn update_password_tx(&self, tx: &mut Transaction<'static, Postgres>, 
+        id: i64, password: String, password_confirm: String) -> Result<users::user, Error> {
+        if password == String::from("") {
+            return Err(sqlx::Error::InvalidArgument(String::from("password required")));
+        }
+
+        if password != password_confirm {
+            return Err(sqlx::Error::InvalidArgument(String::from("password must match password confirm")));
+        }
+
+        let res = sqlx::query!(r#"
+            UPDATE users SET
+                password = $1
+            WHERE id = $2
+        "#, hash_password(password).unwrap(), id.clone()).execute(&mut **tx).await?;
+
+        self.get_tx(tx, id).await
     }
 }

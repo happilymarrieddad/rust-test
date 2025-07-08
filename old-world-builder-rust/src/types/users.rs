@@ -1,5 +1,6 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use bcrypt::{hash, verify, DEFAULT_COST}; 
 
 // sqlx::FromRow
 #[derive(Debug, Serialize)]
@@ -28,7 +29,15 @@ impl user {
             active: true,
             deleted_at: None,
         }
-    } 
+    }
+
+    pub fn set_password(&mut self, new_password: String) {
+        self.password = hash(new_password, DEFAULT_COST).unwrap();
+    }
+
+    pub fn verify_password(&mut self, password: String) -> bool {
+        verify(password, &self.password).unwrap()
+    }
 }
 
 #[derive(Deserialize)]

@@ -31,9 +31,9 @@ pub async fn login(state: web::Data<AppState>, data: web::Json<login_data>) -> i
         }));
     }
 
-    let user = user_get_by_id_result.unwrap();
+    let mut user = user_get_by_id_result.unwrap();
 
-    let password_check_result = verify(data.password.clone(), user.password.as_str()).unwrap();
+    let password_check_result = user.verify_password(data.password.clone());
     if !password_check_result {
         return HttpResponse::Unauthorized().json(json!({
             "error": String::from("unauthorized"),
