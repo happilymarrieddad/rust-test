@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM users WHERE id = $1 OR email = $2",
+  "query": "SELECT * FROM users WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -71,13 +71,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        {
-          "Custom": {
-            "name": "citext",
-            "kind": "Simple"
-          }
-        }
+        "Int8"
       ]
     },
     "nullable": [
@@ -92,5 +86,5 @@
       true
     ]
   },
-  "hash": "384d8149fb04e4b1155d175b5d43a056ccfd7d4be8b5912b4af11f35b2e77518"
+  "hash": "843923b9a0257cf80f1dff554e7dc8fdfc05f489328e8376513124dfb42996e3"
 }
