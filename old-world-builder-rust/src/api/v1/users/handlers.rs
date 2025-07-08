@@ -1,5 +1,3 @@
-use actix_web::http::header::ContentType;
-use actix_web::mime::APPLICATION_JSON;
 use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
 use serde_json::json;
@@ -15,8 +13,8 @@ pub struct FindOpts {
     email: String,
 }
 
-pub async fn get(data: web::Data<AppState>, path: web::Path<i64>) -> impl Responder {
-    let repo = data.user_repo.clone();
+pub async fn get(state: web::Data<AppState>, path: web::Path<i64>) -> impl Responder {
+    let repo = state.user_repo.clone();
 
     let id = path.into_inner();
     
@@ -31,8 +29,8 @@ pub async fn get(data: web::Data<AppState>, path: web::Path<i64>) -> impl Respon
     HttpResponse::Ok().json(result.unwrap())
 }
 
-pub async fn find(data: web::Data<AppState>, opts: web::Query<FindOpts>) -> impl Responder {
-    let repo = data.user_repo.clone();
+pub async fn find(state: web::Data<AppState>, opts: web::Query<FindOpts>) -> impl Responder {
+    let repo = state.user_repo.clone();
 
     let result = repo
         .find(UserRepoFindOpts{
@@ -50,8 +48,8 @@ pub async fn find(data: web::Data<AppState>, opts: web::Query<FindOpts>) -> impl
     HttpResponse::Ok().json(result.unwrap())
 }
 
-pub async fn create(data: web::Data<AppState>, body: web::Json<create_user>) -> impl Responder {
-    let repo = data.user_repo.clone();
+pub async fn create(state: web::Data<AppState>, body: web::Json<create_user>) -> impl Responder {
+    let repo = state.user_repo.clone();
 
     let result = repo.create(body.0).await;
     if result.is_err() {
@@ -64,9 +62,9 @@ pub async fn create(data: web::Data<AppState>, body: web::Json<create_user>) -> 
     HttpResponse::Created().json(result.unwrap())
 }
 
-pub async fn update(data: web::Data<AppState>, path: web::Path<i64>, body: web::Json<update_user>) -> impl Responder {
+pub async fn update(state: web::Data<AppState>, path: web::Path<i64>, body: web::Json<update_user>) -> impl Responder {
     let id = path.into_inner();
-    let repo = data.user_repo.clone();
+    let repo = state.user_repo.clone();
 
     let result = repo.update(id, body.0).await;
     if result.is_err() {
@@ -79,9 +77,9 @@ pub async fn update(data: web::Data<AppState>, path: web::Path<i64>, body: web::
     HttpResponse::Ok().json(result.unwrap())
 }
 
-pub async fn delete(data: web::Data<AppState>, path: web::Path<i64>) -> impl Responder {
+pub async fn delete(state: web::Data<AppState>, path: web::Path<i64>) -> impl Responder {
     // let id = path.into_inner();
-    // let repo = data.user_repo.clone();
+    // let repo = state.user_repo.clone();
 
     // let result = repo.delete(id).await;
     // if result.is_err() {

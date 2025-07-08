@@ -16,12 +16,14 @@ mod repository;
 struct AppState {
     pool: Pool<Postgres>,
     user_repo: repository::users::UserRepo,
+    jwt_secret: String,
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL env is required to run service");
+    let jwt_secret = env::var("JWT_SECRET").expect("JWT_SECRET env is required to run service");
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -32,6 +34,7 @@ async fn main() -> std::io::Result<()> {
         let data = AppState {
             pool: pool.clone(),
             user_repo: repository::users::UserRepo::new(pool.clone()),
+            jwt_secret: jwt_secret.clone(),
         };
 
         let json_config = web::JsonConfig::default()
