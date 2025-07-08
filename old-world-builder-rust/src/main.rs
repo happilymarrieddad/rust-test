@@ -1,16 +1,18 @@
 use std::env;
+use std::time::Duration;
 
-use actix_web::{error, App, HttpServer, web, HttpResponse};
+use actix_web::{error, middleware::{from_fn}, web, App, HttpResponse, HttpServer};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-// use std::{
-//     cell::Cell,
-//     sync::atomic::{AtomicUsize, Ordering},
-//     sync::Arc,
-// };
+use actix_cors::Cors;
+use actix_extensible_rate_limit::{
+    backend::{memory::InMemoryBackend, SimpleInputFunctionBuilder},
+    RateLimiter,
+};
 
 mod api;
 mod types;
 mod repository;
+mod middleware;
 
 #[derive(Clone)]
 struct AppState {
@@ -45,21 +47,38 @@ async fn main() -> std::io::Result<()> {
                     .into()
             });
 
+        let rate_limiter_backend = InMemoryBackend::builder().build();
+
         App::new()
             // config
             .app_data(web::Data::new(data.clone()))
             .app_data(json_config)
+            .wrap(Cors::permissive())
+            .wrap(
+                RateLimiter::builder(
+                    rate_limiter_backend.clone(),
+                    SimpleInputFunctionBuilder::new(Duration::from_secs(60), 50)
+                        .real_ip_key()
+                        .build(),
+                )
+                .add_headers()
+                .build(),
+            )
 
             // base routes
             .route("/login", web::post().to(api::auth::login::login))
 
             // v1 routes
             // users
-            .route("/v1/users", web::get().to(api::v1::users::handlers::find))
-            .route("/v1/users", web::post().to(api::v1::users::handlers::create))
-            .route("/v1/users/{id}", web::get().to(api::v1::users::handlers::get))
-            .route("/v1/users/{id}", web::put().to(api::v1::users::handlers::update))
-            .route("/v1/users/{id}", web::delete().to(api::v1::users::handlers::delete))
+            .service(
+                web::scope("/v1")
+                    .wrap(from_fn(middleware::auth::verify_jwt))
+                    .route("/users", web::get().to(api::v1::users::handlers::find))
+                    .route("/users", web::post().to(api::v1::users::handlers::create))
+                    .route("/users/{id}", web::get().to(api::v1::users::handlers::get))
+                    .route("/users/{id}", web::put().to(api::v1::users::handlers::update))
+                    .route("/users/{id}", web::delete().to(api::v1::users::handlers::delete))
+            )
     })
         .bind(("127.0.0.1", 8080))?
         .run()

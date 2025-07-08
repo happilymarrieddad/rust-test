@@ -13,11 +13,11 @@ pub struct login_data {
     password: String,
 }
 
-#[derive(Serialize)]
-struct claims {
-    sub: i64,
-    role: String,
-    exp: u64,
+#[derive(Serialize, Deserialize)]
+pub struct claims {
+    pub sub: i64,
+    pub role: String,
+    pub exp: u64,
 }
 
 pub async fn login(state: web::Data<AppState>, data: web::Json<login_data>) -> impl Responder {
