@@ -26,6 +26,10 @@ async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL env is required to run service");
     let jwt_secret = env::var("JWT_SECRET").expect("JWT_SECRET env is required to run service");
+    let mut port = env::var("PORT");
+    if port.is_err() {
+        port = Ok("8080".to_string())
+    }
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -80,7 +84,7 @@ async fn main() -> std::io::Result<()> {
                     .route("/users/{id}", web::delete().to(api::v1::users::handlers::delete))
             )
     })
-        .bind(("127.0.0.1", 8080))?
+        .bind(("127.0.0.1", port.unwrap().parse::<u16>().unwrap()))?
         .run()
         .await
 }
