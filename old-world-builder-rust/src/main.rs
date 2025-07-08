@@ -15,6 +15,7 @@ mod repository;
 #[derive(Clone)]
 struct AppState {
     pool: Pool<Postgres>,
+    user_repo: repository::users::UserRepo,
 }
 
 #[actix_web::main]
@@ -30,6 +31,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         let data = AppState {
             pool: pool.clone(),
+            user_repo: repository::users::UserRepo::new(pool.clone()),
         };
 
         let json_config = web::JsonConfig::default()
@@ -51,10 +53,10 @@ async fn main() -> std::io::Result<()> {
             // v1 routes
             // users
             .route("/v1/users", web::get().to(api::v1::users::handlers::find))
-            .route("/v1/users", web::post().to(api::v1::users::handlers::get))
+            .route("/v1/users", web::post().to(api::v1::users::handlers::create))
             .route("/v1/users/{id}", web::get().to(api::v1::users::handlers::get))
-            .route("/v1/users/{id}", web::put().to(api::v1::users::handlers::get))
-            .route("/v1/users/{id}", web::delete().to(api::v1::users::handlers::get))
+            .route("/v1/users/{id}", web::put().to(api::v1::users::handlers::update))
+            .route("/v1/users/{id}", web::delete().to(api::v1::users::handlers::delete))
     })
         .bind(("127.0.0.1", 8080))?
         .run()

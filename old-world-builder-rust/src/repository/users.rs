@@ -1,3 +1,4 @@
+use serde::Serialize;
 use sqlx::{Pool, Postgres, Transaction};
 use sqlx::error::Error;
 use bcrypt::{hash, DEFAULT_COST}; // , verify
@@ -186,16 +187,17 @@ mod tests {
     }
 }
 
+#[derive(Clone)]
 pub struct UserRepo {
     pool: Pool<Postgres>,
 }
 
 #[derive(Debug)]
 pub struct UserRepoFindOpts {
-    limit: i64,
-    offset: i64,
-    id: i64,
-    email: String,
+    pub limit: i64,
+    pub offset: i64,
+    pub id: i64,
+    pub email: String,
 }
 
 impl UserRepoFindOpts {
@@ -209,6 +211,7 @@ impl UserRepoFindOpts {
     }
 }
 
+#[derive(Serialize)]
 pub struct UserRepoFindResult {
     users: Vec<users::user>,
     total: i64,

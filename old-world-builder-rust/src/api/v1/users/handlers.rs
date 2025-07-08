@@ -2,52 +2,95 @@ use actix_web::http::header::ContentType;
 use actix_web::mime::APPLICATION_JSON;
 use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
+use serde_json::json;
 
-use crate::repository::users::UserRepo;
+use crate::repository::users::{UserRepoFindOpts};
 use crate::AppState;
-use crate::types::users::{self, create_user, update_user, user};
+use crate::types::users::{create_user, update_user};
 
 #[derive(Deserialize)]
 pub struct FindOpts {
     limit: i64,
     offset: i64,
+    email: String,
 }
 
-pub async fn get(path: web::Path<u32>) -> impl Responder {
+pub async fn get(data: web::Data<AppState>, path: web::Path<i64>) -> impl Responder {
+    let repo = data.user_repo.clone();
+
     let id = path.into_inner();
-    HttpResponse::NotImplemented()
-}
-
-pub async fn find(opts: web::Query<FindOpts>) -> impl Responder {
-    HttpResponse::NotImplemented()
-}
-
-pub async fn create(data: web::Data<AppState>, new_user: web::Json<create_user>) -> impl Responder {
-    let repo = UserRepo::new(data.pool.clone());
-
-    match repo.create(create_user{
-        first_name: new_user.first_name.clone(),
-        last_name: new_user.last_name.clone(),
-        email: new_user.email.clone(),
-        password: new_user.password.clone(),
-        password_confirm: new_user.password_confirm.clone(),
-    }).await {
-        Err(err) => {
-            HttpResponse::InternalServerError()
-        }
-        Ok(created_user) => {
-            // TODO: return the created user
-            HttpResponse::Created() //.json(created_user)
-        }
+    
+    let result = repo.get(id).await;
+    if result.is_err() {
+       return HttpResponse::BadRequest().json(json!({
+            "status": 400,
+            "message": result.err().unwrap().to_string(),
+        }));
     }
+
+    HttpResponse::Ok().json(result.unwrap())
 }
 
-pub async fn update(path: web::Path<u32>, data: web::Data<AppState>, info: web::Json<update_user>) -> impl Responder {
-    let id = path.into_inner();
-    HttpResponse::NotImplemented()
+pub async fn find(data: web::Data<AppState>, opts: web::Query<FindOpts>) -> impl Responder {
+    let repo = data.user_repo.clone();
+
+    let result = repo
+        .find(UserRepoFindOpts{
+            limit: opts.limit, offset: opts.offset,
+            id: 0, email: opts.email.clone(),
+        })
+        .await;
+    if result.is_err() {
+       return HttpResponse::BadRequest().json(json!({
+            "status": 400,
+            "message": result.err().unwrap().to_string(),
+        }));
+    }
+
+    HttpResponse::Ok().json(result.unwrap())
 }
 
-pub async fn delete(path: web::Path<u32>) -> impl Responder {
+pub async fn create(data: web::Data<AppState>, body: web::Json<create_user>) -> impl Responder {
+    let repo = data.user_repo.clone();
+
+    let result = repo.create(body.0).await;
+    if result.is_err() {
+       return HttpResponse::BadRequest().json(json!({
+            "status": 400,
+            "message": result.err().unwrap().to_string(),
+        }));
+    }
+
+    HttpResponse::Created().json(result.unwrap())
+}
+
+pub async fn update(data: web::Data<AppState>, path: web::Path<i64>, body: web::Json<update_user>) -> impl Responder {
     let id = path.into_inner();
+    let repo = data.user_repo.clone();
+
+    let result = repo.update(id, body.0).await;
+    if result.is_err() {
+       return HttpResponse::BadRequest().json(json!({
+            "status": 400,
+            "message": result.err().unwrap().to_string(),
+        }));
+    }
+
+    HttpResponse::Ok().json(result.unwrap())
+}
+
+pub async fn delete(data: web::Data<AppState>, path: web::Path<i64>) -> impl Responder {
+    // let id = path.into_inner();
+    // let repo = data.user_repo.clone();
+
+    // let result = repo.delete(id).await;
+    // if result.is_err() {
+    //    return HttpResponse::BadRequest().json(json!({
+    //         "status": 400,
+    //         "message": result.err().unwrap().to_string(),
+    //     }));
+    // }
+
+    // HttpResponse::Ok().json(result.unwrap())
     HttpResponse::NotImplemented()
 }

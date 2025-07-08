@@ -1286,6 +1286,7 @@ dependencies = [
  "dotenv",
  "pollster",
  "serde",
+ "serde_json",
  "serial_test",
  "sqlx",
  "time",
