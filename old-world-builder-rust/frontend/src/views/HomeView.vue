@@ -12,7 +12,7 @@ const login = function () {
       return
     }
 
-    userStore.getUsers(50,0)
+    userStore.getUsers(50,0,'')
       .then(([users, err]) => console.log(users))
   })
 }

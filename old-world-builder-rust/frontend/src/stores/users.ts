@@ -7,7 +7,7 @@ import { request } from './requester';
 
 const userRouteUri = "/v1/users"
 
-export const useUsersStore = defineStore('users', () => {
+const useUsersStore = defineStore('users', () => {
   const user = ref({} as User)
   const authStore = useAuthStore();
 
@@ -26,9 +26,9 @@ export const useUsersStore = defineStore('users', () => {
     })
   }
 
-  async function getUsers(limit: number, offset: number): Promise<[GetUsersResponse | undefined, string | undefined]> {
+  async function getUsers(limit: number, offset: number, email: string): Promise<[GetUsersResponse | undefined, string | undefined]> {
     return new Promise(async (resolve) => {
-      const [res, err] = await request(`${userRouteUri}?limit=${limit}&offset=${offset}&email=`, {}, 'GET', authStore.token)
+      const [res, err] = await request(`${userRouteUri}?limit=${limit}&offset=${offset}&email=${email}`, {}, 'GET', authStore.token)
       if (err) {
         return resolve([undefined, err])
       }
@@ -72,3 +72,7 @@ export const useUsersStore = defineStore('users', () => {
 
   return { user, setUser, getUser, getUsers, createUser, updateUser, deleteUser }
 })
+
+type UsersStore = ReturnType<typeof useUsersStore>
+
+export { useUsersStore, type UsersStore }
