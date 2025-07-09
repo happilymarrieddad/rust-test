@@ -6,11 +6,12 @@ const authStore = useAuthStore()
 </script>
 
 <template>
-  <header>
+  <header v-show="authStore.token != ''">
     <div class="wrapper">
       <nav>
         <RouterLink to="/">Home</RouterLink>
         <RouterLink to="/about">About</RouterLink>
+        <RouterLink to="/logout">Logout</RouterLink>
       </nav>
     </div>
   </header>
