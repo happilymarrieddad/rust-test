@@ -4,7 +4,7 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 
 // sqlx::FromRow
 #[derive(Debug, Serialize)]
-pub struct user {
+pub struct User {
     pub id: i64,
     pub first_name: String,
     pub last_name: String,
@@ -16,9 +16,9 @@ pub struct user {
     pub deleted_at: Option<chrono::DateTime<Utc>>,
 }
 
-impl user {
+impl User {
     pub fn new() -> Self {
-        user{
+        User{
             id: 0,
             first_name: String::from(""),
             last_name: String::from(""),
@@ -41,7 +41,7 @@ impl user {
 }
 
 #[derive(Deserialize)]
-pub struct create_user {
+pub struct CreateUser {
     pub first_name: String,
     pub last_name: String,
     pub email: String,
@@ -50,7 +50,7 @@ pub struct create_user {
 }
 
 #[derive(Deserialize)]
-pub struct update_user {
+pub struct UpdateUser {
     pub first_name: String,
     pub last_name: String,
 }

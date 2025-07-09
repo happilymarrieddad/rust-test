@@ -32,8 +32,8 @@ mod tests {
         UserRepo::new(pool)
     }
 
-    async fn create_test_user(repo: &UserRepo, email: String) -> users::user {
-        let new_user = repo.create(users::create_user{
+    async fn create_test_user(repo: &UserRepo, email: String) -> users::User {
+        let new_user = repo.create(users::CreateUser{
             first_name: String::from("Nick"),
             last_name: String::from("Kotenberg"),
             email: email.clone(),
@@ -49,11 +49,11 @@ mod tests {
 
     #[actix_rt::test]
     #[serial] // so we only run them 1 at a time
-    async fn create_user_success() {
+    async fn CreateUser_success() {
         let repo = init().await;
         create_test_user(&repo, String::from("nick@mail.com")).await;
 
-        let err: Error = repo.create(users::create_user{
+        let err: Error = repo.create(users::CreateUser{
             first_name: String::from("Nick"),
             last_name: String::from("Kotenberg"),
             email: String::from("nick@mail.com"),
@@ -125,7 +125,7 @@ mod tests {
 
         let find_result_1 = repo.find(UserRepoFindOpts::new(0, String::from(""))).await.expect("unable to get users");
         assert_eq!(find_result_1.total, 3);
-        assert_eq!(find_result_1.users.get(0).unwrap().email, new_user.email);
+        assert_eq!(find_result_1.users.first().unwrap().email, new_user.email);
         assert_eq!(find_result_1.users.get(1).unwrap().email, new_user2.email);
         assert_eq!(find_result_1.users.get(2).unwrap().email, new_user3.email);
 
@@ -135,14 +135,14 @@ mod tests {
         }).await.expect("unable to get users 2");
         assert_eq!(find_result_2.total, 3);
         assert_eq!(find_result_2.users.len(), 1);
-        assert_eq!(find_result_2.users.get(0).unwrap().email, new_user3.email);
+        assert_eq!(find_result_2.users.first().unwrap().email, new_user3.email);
 
         let find_result_3 = repo.find(
             UserRepoFindOpts::new(0, new_user2.email.clone())
         ).await.expect("unable to get users 3");
         assert_eq!(find_result_3.total, 1);
         assert_eq!(find_result_3.users.len(), 1);
-        assert_eq!(find_result_3.users.get(0).unwrap().email, new_user2.email);
+        assert_eq!(find_result_3.users.first().unwrap().email, new_user2.email);
     }
 
     #[actix_rt::test]
@@ -157,7 +157,7 @@ mod tests {
         let new_first_name = String::from("new first name");
         let new_last_name = String::from("new last name");
 
-        let usr_update = users::update_user{
+        let usr_update = users::UpdateUser{
             first_name: new_first_name.clone(),
             last_name: new_last_name.clone(),
         };
@@ -181,7 +181,7 @@ mod tests {
     async fn update_fail_not_found() {
         let repo = init().await;
 
-        let usr_update = users::update_user{
+        let usr_update = users::UpdateUser{
             first_name: String::from("new first name"),
             last_name: String::from("new last name"),
         };
@@ -209,24 +209,24 @@ impl UserRepoFindOpts {
         UserRepoFindOpts{
             limit: 25,
             offset: 0,
-            id: id,
-            email: email,
+            id,
+            email,
         }
     }
 }
 
 #[derive(Serialize)]
 pub struct UserRepoFindResult {
-    users: Vec<users::user>,
+    users: Vec<users::User>,
     total: i64,
 }
 
 impl UserRepo {
     pub fn new(pool: Pool<Postgres>) -> Self {
-        UserRepo{pool: pool}
+        UserRepo{pool}
     }
 
-    pub async fn create(&self, new_user: users::create_user) -> Result<users::user, Error> {
+    pub async fn create(&self, new_user: users::CreateUser) -> Result<users::User, Error> {
         let mut tx = self.pool.begin().await?;
 
         let res = self.create_tx(&mut tx, new_user).await;
@@ -235,13 +235,13 @@ impl UserRepo {
             return Err(res.err().unwrap());
         }
 
-        let _ = tx.commit().await?;
+        tx.commit().await?;
 
         Ok(res.unwrap())
     }
 
-    pub async fn create_tx(&self, tx: &mut Transaction<'static, Postgres>, new_user: users::create_user) -> Result<users::user, Error> {
-        if new_user.password == String::from("") {
+    pub async fn create_tx(&self, tx: &mut Transaction<'static, Postgres>, new_user: users::CreateUser) -> Result<users::User, Error> {
+        if new_user.password == *"" {
             return Err(sqlx::Error::InvalidArgument(String::from("password required")));
         }
 
@@ -249,7 +249,7 @@ impl UserRepo {
             return Err(sqlx::Error::InvalidArgument(String::from("password must match password confirm")));
         }
 
-        let row = sqlx::query_as!(users::user,
+        let row = sqlx::query_as!(users::User,
             "INSERT INTO users (first_name, last_name, email, password)
             VALUES ($1, $2, $3, $4) RETURNING *"
                 ,new_user.first_name.clone()
@@ -261,7 +261,7 @@ impl UserRepo {
         Ok(row)
     }
 
-    pub async fn get(&self, id: i64) -> Result<users::user, Error> {
+    pub async fn get(&self, id: i64) -> Result<users::User, Error> {
         let mut tx = self.pool.begin().await?;
 
         let res = self.get_tx(&mut tx, id).await;
@@ -270,24 +270,24 @@ impl UserRepo {
             return Err(res.err().unwrap());
         }
 
-        let _ = tx.commit().await?;
+        tx.commit().await?;
 
         Ok(res.unwrap())
     }
 
-    pub async fn get_tx(&self, tx: &mut Transaction<'static, Postgres>, id: i64) -> Result<users::user, Error> {
+    pub async fn get_tx(&self, tx: &mut Transaction<'static, Postgres>, id: i64) -> Result<users::User, Error> {
         if id < 1 {
             return Err(sqlx::Error::RowNotFound)
         }
         
-        let row = sqlx::query_as!(users::user,
+        let row = sqlx::query_as!(users::User,
             "SELECT * FROM users WHERE id = $1", id)
             .fetch_one(&mut **tx).await?;
 
         Ok(row)
     }
 
-    pub async fn find_by_email(&self, email: String) -> Result<users::user, Error> {
+    pub async fn find_by_email(&self, email: String) -> Result<users::User, Error> {
         let mut tx = self.pool.begin().await?;
 
         let res = self.find_by_email_tx(&mut tx, email).await;
@@ -296,20 +296,20 @@ impl UserRepo {
             return Err(res.err().unwrap());
         }
 
-        let _ = tx.commit().await?;
+        tx.commit().await?;
 
         Ok(res.unwrap())
     }
 
-    pub async fn find_by_email_tx(&self, tx: &mut Transaction<'static, Postgres>, email: String) -> Result<users::user, Error> {
-        let row = sqlx::query_as!(users::user, 
+    pub async fn find_by_email_tx(&self, tx: &mut Transaction<'static, Postgres>, email: String) -> Result<users::User, Error> {
+        let row = sqlx::query_as!(users::User, 
                 "SELECT * FROM users WHERE email = $1", email)
                 .fetch_one(&mut **tx).await?;
 
         Ok(row)
     }
 
-    pub async fn find(&self, mut opts: UserRepoFindOpts) -> Result<UserRepoFindResult, Error> {
+    pub async fn find(&self, opts: UserRepoFindOpts) -> Result<UserRepoFindResult, Error> {
         let mut tx = self.pool.begin().await?;
 
         let res = self.find_tx(&mut tx, opts).await;
@@ -318,7 +318,7 @@ impl UserRepo {
             return Err(res.err().unwrap());
         }
 
-        let _ = tx.commit().await?;
+        tx.commit().await?;
 
         Ok(res.unwrap())
     }
@@ -332,7 +332,7 @@ impl UserRepo {
             opts.limit = 500
         }
 
-        let rows = sqlx::query_as!(users::user, r#"
+        let rows = sqlx::query_as!(users::User, r#"
             SELECT 
                 * 
             
@@ -362,10 +362,11 @@ impl UserRepo {
             users: rows,
             total: count.unwrap_or_default(),
         };
-        return Ok(result)
+
+        Ok(result)
     }
 
-    pub async fn update(&self, id: i64, usr: users::update_user) -> Result<users::user, Error> {
+    pub async fn update(&self, id: i64, usr: users::UpdateUser) -> Result<users::User, Error> {
         let mut tx = self.pool.begin().await?;
 
         let res = self.update_tx(&mut tx, id, usr).await;
@@ -374,13 +375,13 @@ impl UserRepo {
             return Err(res.err().unwrap());
         }
 
-        let _ = tx.commit().await?;
+        tx.commit().await?;
 
         Ok(res.unwrap())
     }
 
-    pub async fn update_tx(&self, tx: &mut Transaction<'static, Postgres>, id: i64, usr: users::update_user) -> Result<users::user, Error> {
-        let res = sqlx::query!(r#"
+    pub async fn update_tx(&self, tx: &mut Transaction<'static, Postgres>, id: i64, usr: users::UpdateUser) -> Result<users::User, Error> {
+        sqlx::query!(r#"
             UPDATE users SET
                 first_name = $1
                 ,last_name = $2
@@ -391,7 +392,7 @@ impl UserRepo {
         self.get_tx(tx, id).await
     }
 
-    pub async fn update_from(&self, usr: users::user) -> Result<users::user, Error> {
+    pub async fn update_from(&self, usr: users::User) -> Result<users::User, Error> {
         let mut tx = self.pool.begin().await?;
 
         let res = self.update_from_tx(&mut tx, usr).await;
@@ -400,13 +401,13 @@ impl UserRepo {
             return Err(res.err().unwrap());
         }
 
-        let _ = tx.commit().await?;
+        tx.commit().await?;
 
         Ok(res.unwrap())
     }
 
-    pub async fn update_from_tx(&self, tx: &mut Transaction<'static, Postgres>, usr: users::user) -> Result<users::user, Error> {
-        let res = sqlx::query!(r#"
+    pub async fn update_from_tx(&self, tx: &mut Transaction<'static, Postgres>, usr: users::User) -> Result<users::User, Error> {
+        sqlx::query!(r#"
             UPDATE users SET
                 first_name = $1
                 ,last_name = $2
@@ -416,7 +417,7 @@ impl UserRepo {
         self.get_tx(tx, usr.id).await
     }
 
-    pub async fn update_password(&self, id: i64, password: String, password_confirm: String) -> Result<users::user, Error> {
+    pub async fn update_password(&self, id: i64, password: String, password_confirm: String) -> Result<users::User, Error> {
         let mut tx = self.pool.begin().await?;
 
         let res = self.update_password_tx(&mut tx, id, password, password_confirm).await;
@@ -425,14 +426,14 @@ impl UserRepo {
             return Err(res.err().unwrap());
         }
 
-        let _ = tx.commit().await?;
+        tx.commit().await?;
 
         Ok(res.unwrap())
     }
 
     pub async fn update_password_tx(&self, tx: &mut Transaction<'static, Postgres>, 
-        id: i64, password: String, password_confirm: String) -> Result<users::user, Error> {
-        if password == String::from("") {
+        id: i64, password: String, password_confirm: String) -> Result<users::User, Error> {
+        if password == *"" {
             return Err(sqlx::Error::InvalidArgument(String::from("password required")));
         }
 
@@ -440,7 +441,7 @@ impl UserRepo {
             return Err(sqlx::Error::InvalidArgument(String::from("password must match password confirm")));
         }
 
-        let res = sqlx::query!(r#"
+        sqlx::query!(r#"
             UPDATE users SET
                 password = $1
             WHERE id = $2

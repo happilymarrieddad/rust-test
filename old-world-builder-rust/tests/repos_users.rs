@@ -4,7 +4,7 @@
 // use super::*;
 
 // #[actix_rt::test]
-// async fn create_user() {
+// async fn CreateUser() {
 //     let pool = PgPoolOptions::new()
 //         .max_connections(5)
 //         .connect("postgres://postgres:postgres@localhost:5432/oldworld-test?connect_timeout=180&sslmode=disable")
@@ -14,7 +14,7 @@
 
 //     let repo = UserRepo::new(pool);
 
-//     let new_user = repo.create(users::create_user{
+//     let new_user = repo.create(users::CreateUser{
 //         first_name: String::from("Nick"),
 //         last_name: String::from("Kotenberg"),
 //         email: String::from("nick@mail.com"),
@@ -25,7 +25,7 @@
 //     assert_ne!(new_user.id, 0);
 //     assert_eq!(new_user.email, "nick@mail.com");
 
-//     let err: Error = repo.create(users::create_user{
+//     let err: Error = repo.create(users::CreateUser{
 //         first_name: String::from("Nick"),
 //         last_name: String::from("Kotenberg"),
 //         email: String::from("nick@mail.com"),

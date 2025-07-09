@@ -4,7 +4,7 @@ use serde_json::json;
 
 use crate::repository::users::{UserRepoFindOpts};
 use crate::AppState;
-use crate::types::users::{create_user, update_user};
+use crate::types::users::{CreateUser, UpdateUser};
 
 #[derive(Deserialize)]
 pub struct FindOpts {
@@ -48,7 +48,7 @@ pub async fn find(state: web::Data<AppState>, opts: web::Query<FindOpts>) -> imp
     HttpResponse::Ok().json(result.unwrap())
 }
 
-pub async fn create(state: web::Data<AppState>, body: web::Json<create_user>) -> impl Responder {
+pub async fn create(state: web::Data<AppState>, body: web::Json<CreateUser>) -> impl Responder {
     let repo = state.user_repo.clone();
 
     let result = repo.create(body.0).await;
@@ -62,7 +62,7 @@ pub async fn create(state: web::Data<AppState>, body: web::Json<create_user>) ->
     HttpResponse::Created().json(result.unwrap())
 }
 
-pub async fn update(state: web::Data<AppState>, path: web::Path<i64>, body: web::Json<update_user>) -> impl Responder {
+pub async fn update(state: web::Data<AppState>, path: web::Path<i64>, body: web::Json<UpdateUser>) -> impl Responder {
     let id = path.into_inner();
     let repo = state.user_repo.clone();
 
@@ -77,7 +77,7 @@ pub async fn update(state: web::Data<AppState>, path: web::Path<i64>, body: web:
     HttpResponse::Ok().json(result.unwrap())
 }
 
-pub async fn delete(state: web::Data<AppState>, path: web::Path<i64>) -> impl Responder {
+pub async fn delete(_state: web::Data<AppState>, _path: web::Path<i64>) -> impl Responder {
     // let id = path.into_inner();
     // let repo = state.user_repo.clone();
 
