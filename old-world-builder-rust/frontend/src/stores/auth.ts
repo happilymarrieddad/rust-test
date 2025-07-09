@@ -28,17 +28,17 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(
     email: string,
     password: string,
-  ): Promise<[string | undefined, string | undefined]> {
+  ): Promise<string | undefined> {
     return new Promise(async (resolve) => {
       const [tokenData, err] = await request('/login', { email, password }, 'POST', '')
       if (err) {
-        return resolve([undefined, err])
+        return resolve(err)
       }
 
       const data = tokenData as loginResponse
 
       setToken(data.token)
-      return resolve([data.token, undefined])
+      return resolve(undefined)
     })
   }
 

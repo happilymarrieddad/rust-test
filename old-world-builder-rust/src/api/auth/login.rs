@@ -56,8 +56,10 @@ pub async fn login(state: web::Data<AppState>, data: web::Json<login_data>) -> i
         &EncodingKey::from_secret(state.jwt_secret.as_bytes()),
     ).unwrap();
 
+    user.password = String::from(""); // sanitize the password
     HttpResponse::Ok().json(json!({
         "status": "success",
         "token": token,
+        "user": user,
     }))
 }
